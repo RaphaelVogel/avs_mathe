@@ -1,4 +1,6 @@
-firstBundesliga die Tabelle der ersten Bundesliga
-firstBundesliga die erste Bundesliga
-secondBundesliga die Tabelle der zweiten Bundesliga
-secondBundesliga die zweite Bundesliga
+SetDifficulty Schwierigkeitsgrad {Number}
+NumericResponse {Answer}
+StartGame Spiele
+StartGame Starte
+StartGame Lade
+StartGame Öffne

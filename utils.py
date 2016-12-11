@@ -1,8 +1,5 @@
-response_comments = ["<speak>OK</speak>",
-                     "<speak>Bitteschön</speak>",
-                     "<speak>Jawohl</speak>",
-                     "<speak>Gerne</speak>"
-                     ]
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 
 # ----------------------------------------------------------------------------------
@@ -53,7 +50,7 @@ def build_speech_with_repromt_response(speech_output, should_end_session, reprom
         'reprompt': {
             'outputSpeech': {
                 'type': 'SSML',
-                'text': repromt_text
+                'ssml': repromt_text
             }
         },
         'shouldEndSession': should_end_session

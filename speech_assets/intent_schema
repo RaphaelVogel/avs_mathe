@@ -1,13 +1,37 @@
 {
   "intents": [
     {
-      "intent": "firstBundesliga"
+      "intent": "AMAZON.CancelIntent"
     },
     {
-      "intent": "secondBundesliga"
+      "intent": "AMAZON.StopIntent"
     },
     {
-      "intent": "AMAZON.HelpIntent"
+      "intent": "AMAZON.YesIntent"
+    },
+    {
+      "intent": "AMAZON.NoIntent"
+    },
+    {
+      "intent": "StartGame"
+    },
+    {
+      "intent": "SetDifficulty",
+      "slots": [
+        {
+          "name": "Number",
+          "type": "AMAZON.NUMBER"
+        }
+      ]
+    },
+    {
+      "intent": "NumericResponse",
+      "slots": [
+        {
+          "name": "Answer",
+          "type": "AMAZON.NUMBER"
+        }
+      ]
     }
   ]
 }
