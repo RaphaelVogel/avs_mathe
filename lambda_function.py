@@ -7,7 +7,9 @@ import random
 env_skill_id = os.environ['skill_id']
 
 number_text = ["eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben"]
-turns = 3
+turns = 2
+correct = ["Richtig, gut gemacht. ", "Richtig, super. ", "Richtig, weiter so. ", "Richtig, das machst du gut. "]
+incorrect = ["Leider nicht richtig. ", "Stimmt leider nicht. ", "Leider falsch. "]
 
 
 # ----------------------------------------------------------------------------------
@@ -52,14 +54,14 @@ def on_intent(intent_request, session_attributes):
 
     # Dispatch to your skill's intent handlers
     if intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
-        return end_game(intent, session_attributes)
+        return exit_game(intent, session_attributes)
 
     elif intent_name == "AMAZON.YesIntent":
-        if previous_place == "end_game":
+        if previous_place == "handle_answer":
             return play_again(intent, session_attributes)
 
     elif intent_name == "AMAZON.NoIntent":
-        if previous_place == "end_game":
+        if previous_place == "handle_answer":
             return exit_game(intent, session_attributes)
 
     elif intent_name == "StartGame":
@@ -108,9 +110,9 @@ def set_difficulty(intent, session_attributes):
 
 
 def handle_quiz_answer(intent, session_attributes):
-    if session_attributes["previous_place"] != "welcome":
+    should_end_session = False
+    if session_attributes["previous_place"] == "set_difficulty_level" or session_attributes["previous_place"] == "handle_answer":
         session_attributes["previous_place"] = "handle_answer"
-        should_end_session = False
         session_attributes["turns"] += 1
         expected_result = session_attributes["expected_result"]
         spoken_result = int(intent["slots"]["Answer"]["value"])
@@ -118,16 +120,24 @@ def handle_quiz_answer(intent, session_attributes):
         session_attributes["expected_result"] = new_question["result"]
         if spoken_result == expected_result:
             session_attributes["correct"] += 1
-            speech_output = "<speak>Richtig, gut gemacht. Nächste Frage: " + new_question["text"] + "</speak>"
+            speech_part = random.choice(correct)
         else:
             session_attributes["incorrect"] += 1
-            speech_output = "<speak>Leider nicht richtig. Nächste Frage: " + new_question["text"] + "</speak>"
+            speech_part = random.choice(incorrect)
 
-        repromt_text = "<speak>" + new_question["text"] + "</speak>"
+        if session_attributes["turns"] < turns:
+            speech_part += "Nächste Frage: " + new_question["text"]
+            repromt_text = "<speak>" + new_question["text"] + "</speak>"
+        else:
+            speech_part += "<break time='1s'/>Ok, das Spiel ist zu Ende. Du hast "
+            speech_part += str(session_attributes["correct"]) + " von " + str(turns) + " Fragen richtig beantwortet. "
+            speech_part += "Willst du nochmal spielen?"
+            repromt_text = "<speak>Willst du nochmal spielen?</speak>"
+
+        speech_output = "<speak>" + speech_part + "</speak>"
     else:
-        # User comes from welcome and just said a number without "Schwierigkeitsgrad"
-        speech_output = "<speak>Wähle einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
-                        "mit Schwierigkeitsgrad drei zu starten, sage, Schwierigkeitsgrad drei.</speak>"
+        # User comes from welcome or play_again and just said a number without "Schwierigkeitsgrad"
+        speech_output = "<speak>So funktioniert das nicht. Du musst sagen, Schwierigkeitsgrad, und dann eine Zahl von eins bis sieben</speak>"
         repromt_text = "<speak>Wähle einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
                        "mit Schwierigkeitsgrad drei zu starten, sage, Schwierigkeitsgrad drei.</speak>"
 
@@ -135,26 +145,19 @@ def handle_quiz_answer(intent, session_attributes):
         utils.build_speech_with_repromt_response(speech_output, should_end_session, repromt_text))
 
 
-def end_game(intent, session_attributes):
-    session_attributes["previous_place"] = "end_game"
-    should_end_session = False
-    speech_output = "<speak>Danke dass du Mathe Ass gespielt hast. Willst du nochmal spielen?</speak>"
-    return utils.build_response(session_attributes,
-        utils.build_speech_response(speech_output, should_end_session))
-
-
 def exit_game(intent, session_attributes):
     return utils.build_response(session_attributes,
-        utils.build_speech_response("<speak>Ok, bis bald.</speak>", True))
+        utils.build_speech_response("<speak>Ok. Danke dass du Mathe Ass gespielt hast. Bis bald.</speak>", True))
 
 
 def play_again(intent, session_attributes):
     session_attributes = dict()
     session_attributes["previous_place"] = "play_again"
-    speech_output = "<speak>Wir fangen neu an: Wähle einen Schwierigkeitsgrad von null bis sechs.</speak>"
+    speech_output = "<speak>Ok, wir fangen wieder neu an: Wähle einen Schwierigkeitsgrad von eins bis sieben.</speak>"
+    repromt_text = "<speak>Du musst sagen, Schwierigkeitsgrad, und dann eine Zahl von eins bis sieben.</speak>"
     should_end_session = False
     return utils.build_response(session_attributes,
-        utils.build_speech_response(speech_output, should_end_session))
+        utils.build_speech_with_repromt_response(speech_output, should_end_session, repromt_text))
 
 
 # ------------------------------------------------------------------------------------------------
