@@ -6,6 +6,9 @@ import random
 
 env_skill_id = os.environ['skill_id']
 
+number_text = ["eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben"]
+turns = 3
+
 
 # ----------------------------------------------------------------------------------
 # Events triggered from AVS
@@ -52,13 +55,12 @@ def on_intent(intent_request, session_attributes):
         return end_game(intent, session_attributes)
 
     elif intent_name == "AMAZON.YesIntent":
-        if previous_place == "set_difficulty_level":
-            return start_game(intent, session_attributes)
-        elif previous_place == "end_game":
+        if previous_place == "end_game":
             return play_again(intent, session_attributes)
 
     elif intent_name == "AMAZON.NoIntent":
-        return end_game(intent, session_attributes)
+        if previous_place == "end_game":
+            return exit_game(intent, session_attributes)
 
     elif intent_name == "StartGame":
         return get_welcome_response(session_attributes)
@@ -77,85 +79,89 @@ def on_intent(intent_request, session_attributes):
 # Functions that control the skill's intent
 # ----------------------------------------------------------------------------------
 def get_welcome_response(session_attributes):
-    # If the user either does not reply to the welcome message or says something
-    # that is not understood, they will be prompted again with this text.
-    speech_output = "<speak>Willkommen bei Mathe Ass. Wähle zuerst einen Schwierigkeitsgrad von null bis sechs. Um zum Beispiel " \
-                    "mit Schwierigkeitsgrad null zu starten, sage Schwierigkeitsgrad null.</speak>"
-    repromt_text = "<speak>Das habe ich nicht verstanden. Wähle einen Schwierigkeitsgrad von null bis sechs indem du sagst Schwierigkeitsgrad, " \
-                   "und dann eine Zahl zwischen null und sechs.</speak>"
-    should_end_session = False
     session_attributes["previous_place"] = "welcome"
-
+    should_end_session = False
+    speech_output = "<speak>Willkommen bei Mathe Ass. Wähle zuerst einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
+                    "mit Schwierigkeitsgrad drei zu starten, sage, Schwierigkeitsgrad drei.</speak>"
+    repromt_text = "<speak>Das habe ich nicht verstanden. Wähle einen Schwierigkeitsgrad von eins bis sieben.</speak>"
     return utils.build_response(session_attributes,
         utils.build_speech_with_repromt_response(speech_output, should_end_session, repromt_text))
 
 
-# user wants to cancel or stop skill
-def end_game(intent, session_attributes):
-    session_attributes["previous_place"] = "end_game"
-    speech_output = "<speak>Danke dass du Mathe Ass gespielt hast. Willst du nochmal spielen?</speak>"
+def set_difficulty(intent, session_attributes):
+    session_attributes["previous_place"] = "set_difficulty_level"
     should_end_session = False
+    difficulty = int(intent["slots"]["Number"]["value"])
+    if difficulty < 1 or difficulty > 7:
+        speech_output = "<speak>Diesen Schwierigkeitsgrad gibt es nicht. Wähle einen Schwierigkeitsgrad von eins bis sieben.</speak>"
+    else:
+        session_attributes['difficulty'] = difficulty
+        session_attributes["correct"] = 0
+        session_attributes["incorrect"] = 0
+        session_attributes["turns"] = 0
+        new_question = get_question(difficulty)
+        session_attributes["expected_result"] = new_question["result"]
+        speech_output = "<speak>Ok, wir starten mit Schwierigkeitsgrad " + number_text[difficulty - 1] + ". " + new_question["text"] + ".</speak>"
 
     return utils.build_response(session_attributes,
         utils.build_speech_response(speech_output, should_end_session))
 
 
-def play_again(intent, session_attributes):
-    pass
-
-
-def set_difficulty(intent, session_attributes):
-    if 'Number' in intent['slots']:
-        session_attributes["previous_place"] = "set_difficulty_level"
-        should_end_session = False
-        difficulty = int(intent["slots"]["Number"]["value"])
-        session_attributes["difficulty"] = difficulty
-        if difficulty < 1 or difficulty > 5:
-            speech_output = "<speak>Wähle einen Schwierigkeitsgrad von null bis sechs. Um zum Beispiel " \
-                            "mit Schwierigkeitsgrad null zu starten, sage Schwierigkeitsgrad null.</speak>"
-        else:
-            session_attributes['difficulty'] = str(difficulty)
-            speech_output = "<speak>Ok wir starten mit Schwierigkeitsgrad " + str(difficulty) + ". Willst du jetzt das Spiel starten?</speak>"
-
-        return utils.build_response(session_attributes,
-            utils.build_speech_response(speech_output, should_end_session))
-
-
-def start_game(intent, session_attributes):
-    session_attributes["previous_place"] = "in_game"
-    session_attributes["correct"] = 0
-    session_attributes["incorrect"] = 0
-    difficulty = int(session_attributes['difficulty'])
-    question = get_question(difficulty)
-    session_attributes["last_question"] = question["text"]
-    session_attributes["expected_result"] = question["result"]
-    return utils.build_response(session_attributes,
-        utils.build_speech_with_repromt_response(question["text"], False, question["text"]))
-
-
 def handle_quiz_answer(intent, session_attributes):
-    session_attributes["previous_place"] = "handle_answer"
-    expected_result = session_attributes["expected_result"]
-    spoken_result = int(intent["slots"]["Answer"]["value"])
-    if spoken_result == expected_result:
-        session_attributes["correct"] += 1
-        correct_output = "Richtig, gut gemacht. Nächste Frage: "
-    else:
-        session_attributes["incorrect"] += 1
-        correct_output = "Leider nicht richtig. Nächste Frage: "
+    if session_attributes["previous_place"] != "welcome":
+        session_attributes["previous_place"] = "handle_answer"
+        should_end_session = False
+        session_attributes["turns"] += 1
+        expected_result = session_attributes["expected_result"]
+        spoken_result = int(intent["slots"]["Answer"]["value"])
+        new_question = get_question(session_attributes["difficulty"])
+        session_attributes["expected_result"] = new_question["result"]
+        if spoken_result == expected_result:
+            session_attributes["correct"] += 1
+            speech_output = "<speak>Richtig, gut gemacht. Nächste Frage: " + new_question["text"] + "</speak>"
+        else:
+            session_attributes["incorrect"] += 1
+            speech_output = "<speak>Leider nicht richtig. Nächste Frage: " + new_question["text"] + "</speak>"
 
-    question = get_question(session_attributes["difficulty"])
-    session_attributes["last_question"] = question["text"]
-    session_attributes["expected_result"] = question["result"]
+        repromt_text = "<speak>" + new_question["text"] + "</speak>"
+    else:
+        # User comes from welcome and just said a number without "Schwierigkeitsgrad"
+        speech_output = "<speak>Wähle einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
+                        "mit Schwierigkeitsgrad drei zu starten, sage, Schwierigkeitsgrad drei.</speak>"
+        repromt_text = "<speak>Wähle einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
+                       "mit Schwierigkeitsgrad drei zu starten, sage, Schwierigkeitsgrad drei.</speak>"
+
     return utils.build_response(session_attributes,
-        utils.build_speech_with_repromt_response(question["text"], False, question["text"]))
+        utils.build_speech_with_repromt_response(speech_output, should_end_session, repromt_text))
+
+
+def end_game(intent, session_attributes):
+    session_attributes["previous_place"] = "end_game"
+    should_end_session = False
+    speech_output = "<speak>Danke dass du Mathe Ass gespielt hast. Willst du nochmal spielen?</speak>"
+    return utils.build_response(session_attributes,
+        utils.build_speech_response(speech_output, should_end_session))
+
+
+def exit_game(intent, session_attributes):
+    return utils.build_response(session_attributes,
+        utils.build_speech_response("<speak>Ok, bis bald.</speak>", True))
+
+
+def play_again(intent, session_attributes):
+    session_attributes = dict()
+    session_attributes["previous_place"] = "play_again"
+    speech_output = "<speak>Wir fangen neu an: Wähle einen Schwierigkeitsgrad von null bis sechs.</speak>"
+    should_end_session = False
+    return utils.build_response(session_attributes,
+        utils.build_speech_response(speech_output, should_end_session))
 
 
 # ------------------------------------------------------------------------------------------------
 # Helper functions
 # ------------------------------------------------------------------------------------------------
 def get_question(difficulty):
-    level = levels[difficulty]
+    level = levels[difficulty - 1]
     operation = random.choice(level["operations"])
     term1 = random.randint(operation["term1_low"], operation["term1_high"])
     term2 = random.randint(operation["term2_low"], operation["term2_high"])
@@ -189,7 +195,7 @@ def get_question(difficulty):
 
 levels = [
     {
-        "level": 0,
+        "level": 1,
         "operations": [
             {
                 "name": "add",
@@ -197,18 +203,6 @@ levels = [
                 "term1_high": 6,
                 "term2_low": 0,
                 "term2_high": 6
-            }
-        ]
-    },
-    {
-        "level": 1,
-        "operations": [
-            {
-                "name": "add",
-                "term1_low": 0,
-                "term1_high": 10,
-                "term2_low": 0,
-                "term2_high": 10
             }
         ]
     },
@@ -221,18 +215,30 @@ levels = [
                 "term1_high": 10,
                 "term2_low": 0,
                 "term2_high": 10
-            },
-            {
-                "name": "sub",
-                "term1_low": 0,
-                "term1_high": 10,
-                "term2_low": 0,
-                "term2_high": 10
             }
         ]
     },
     {
         "level": 3,
+        "operations": [
+            {
+                "name": "add",
+                "term1_low": 0,
+                "term1_high": 10,
+                "term2_low": 0,
+                "term2_high": 10
+            },
+            {
+                "name": "sub",
+                "term1_low": 1,
+                "term1_high": 10,
+                "term2_low": 1,
+                "term2_high": 10
+            }
+        ]
+    },
+    {
+        "level": 4,
         "operations": [
             {
                 "name": "add",
@@ -251,7 +257,7 @@ levels = [
         ]
     },
     {
-        "level": 4,
+        "level": 5,
         "operations": [
             {
                 "name": "add",
@@ -270,7 +276,7 @@ levels = [
         ]
     },
     {
-        "level": 5,
+        "level": 6,
         "operations": [
             {
                 "name": "mult",
@@ -282,7 +288,7 @@ levels = [
         ]
     },
     {
-        "level": 6,
+        "level": 7,
         "operations": [
             {
                 "name": "mult",
@@ -294,7 +300,7 @@ levels = [
             {
                 "name": "div",
                 "term1_low": 2,
-                "term1_high": 30,
+                "term1_high": 40,
                 "term2_low": 2,
                 "term2_high": 10
             }
