@@ -7,8 +7,8 @@ import random
 env_skill_id = os.environ['skill_id']
 
 number_text = ["eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben"]
-turns = 2
-correct = ["Richtig, gut gemacht. ", "Richtig, super. ", "Richtig, weiter so. ", "Richtig, das machst du gut. "]
+turns = 8
+correct = ["Richtig, gut gemacht. ", "Korrekt. ", "Richtig. "]
 incorrect = ["Leider nicht richtig. ", "Stimmt leider nicht. ", "Leider falsch. "]
 
 
@@ -97,7 +97,7 @@ def on_intent(intent_request, session_attributes):
 def get_welcome_response(session_attributes):
     session_attributes["previous_place"] = "welcome"
     should_end_session = False
-    speech_output = "<speak>Willkommen bei Mathe Ass. Wähle zuerst einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
+    speech_output = "<speak>Willkommen bei Mathe Trainer. Wähle zuerst einen Schwierigkeitsgrad von eins bis sieben. Um zum Beispiel " \
                     "mit Schwierigkeitsgrad drei zu starten, sage, Schwierigkeitsgrad drei.</speak>"
     repromt_text = "<speak>So funktioniert das nicht. Du musst sagen, Schwierigkeitsgrad, und dann eine Zahl von eins bis sieben</speak>"
 
@@ -148,7 +148,7 @@ def handle_quiz_answer(intent, session_attributes):
         speech_part += "Nächste Frage: " + new_question["text"]
         repromt_text = "<speak>" + new_question["text"] + "</speak>"
     else:
-        speech_part += "<break time='1s'/>So, das Spiel ist zu Ende. Du hast "
+        speech_part += "<break time='1s'/>Das Spiel ist zu Ende. Du hast "
         speech_part += str(session_attributes["correct"]) + " von " + str(turns) + " Fragen richtig beantwortet. "
         speech_part += "Willst du nochmal spielen?"
         repromt_text = "<speak>Willst du nochmal spielen?</speak>"
@@ -162,7 +162,7 @@ def handle_quiz_answer(intent, session_attributes):
 
 
 def exit_game(intent, session_attributes):
-    speech_output = "<speak>Ok. Danke dass du Mathe Ass gespielt hast. Bis bald.</speak>"
+    speech_output = "<speak>Ok. Danke dass du Mathe Trainer gespielt hast. Bis bald.</speak>"
     session_attributes['last_question'] = speech_output
     return utils.build_response(session_attributes,
         utils.build_speech_response(speech_output, True))
@@ -228,7 +228,7 @@ levels = [
         "operations": [
             {
                 "name": "add",
-                "term1_low": 0,
+                "term1_low": 1,
                 "term1_high": 6,
                 "term2_low": 1,
                 "term2_high": 6
@@ -240,9 +240,9 @@ levels = [
         "operations": [
             {
                 "name": "add",
-                "term1_low": 1,
+                "term1_low": 2,
                 "term1_high": 10,
-                "term2_low": 1,
+                "term2_low": 2,
                 "term2_high": 10
             }
         ]
@@ -252,16 +252,16 @@ levels = [
         "operations": [
             {
                 "name": "add",
-                "term1_low": 2,
-                "term1_high": 10,
-                "term2_low": 2,
-                "term2_high": 10
+                "term1_low": 4,
+                "term1_high": 15,
+                "term2_low": 4,
+                "term2_high": 12
             },
             {
                 "name": "sub",
-                "term1_low": 1,
-                "term1_high": 10,
-                "term2_low": 1,
+                "term1_low": 5,
+                "term1_high": 15,
+                "term2_low": 3,
                 "term2_high": 10
             }
         ]
@@ -272,14 +272,14 @@ levels = [
             {
                 "name": "add",
                 "term1_low": 5,
-                "term1_high": 15,
-                "term2_low": 3,
-                "term2_high": 10
+                "term1_high": 30,
+                "term2_low": 4,
+                "term2_high": 15
             },
             {
                 "name": "sub",
-                "term1_low": 3,
-                "term1_high": 20,
+                "term1_low": 5,
+                "term1_high": 25,
                 "term2_low": 3,
                 "term2_high": 10
             }
@@ -289,18 +289,11 @@ levels = [
         "level": 5,
         "operations": [
             {
-                "name": "add",
-                "term1_low": 5,
-                "term1_high": 25,
-                "term2_low": 5,
-                "term2_high": 20
-            },
-            {
-                "name": "sub",
-                "term1_low": 5,
-                "term1_high": 40,
+                "name": "mult",
+                "term1_low": 2,
+                "term1_high": 10,
                 "term2_low": 2,
-                "term2_high": 5
+                "term2_high": 10
             }
         ]
     },
@@ -309,10 +302,17 @@ levels = [
         "operations": [
             {
                 "name": "mult",
-                "term1_low": 2,
+                "term1_low": 3,
                 "term1_high": 10,
-                "term2_low": 2,
+                "term2_low": 3,
                 "term2_high": 10
+            },
+            {
+                "name": "div",
+                "term1_low": 9,
+                "term1_high": 40,
+                "term2_low": 3,
+                "term2_high": 9
             }
         ]
     },
@@ -321,17 +321,17 @@ levels = [
         "operations": [
             {
                 "name": "mult",
-                "term1_low": 2,
+                "term1_low": 3,
                 "term1_high": 10,
-                "term2_low": 2,
+                "term2_low": 3,
                 "term2_high": 12
             },
             {
                 "name": "div",
-                "term1_low": 2,
+                "term1_low": 9,
                 "term1_high": 60,
-                "term2_low": 2,
-                "term2_high": 10
+                "term2_low": 3,
+                "term2_high": 15
             }
         ]
     }

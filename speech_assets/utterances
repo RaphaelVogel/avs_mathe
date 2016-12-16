@@ -1,3 +1,5 @@
 SetDifficulty Schwierigkeitsgrad {Number}
 NumericResponse {Answer}
 StartGame Starte
+StartGame Öffne
+StartGame Spiele
