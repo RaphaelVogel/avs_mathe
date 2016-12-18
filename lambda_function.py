@@ -119,10 +119,12 @@ def set_difficulty(intent, session_attributes):
     new_question = get_question(difficulty)
     session_attributes["expected_result"] = new_question["result"]
     speech_output = "<speak>Ok, dann starten wir mit Schwierigkeitsgrad " + number_text[difficulty - 1] + ". " + new_question["text"] + ".</speak>"
+    repromt_text = "<speak>" + new_question["text"] + "</speak>"
+    print("Repromt Text:" + repromt_text)
 
     session_attributes['last_question'] = new_question["text"]
     return utils.build_response(session_attributes,
-        utils.build_speech_response(speech_output, should_end_session))
+        utils.build_speech_with_repromt_response(speech_output, should_end_session, repromt_text))
 
 
 def handle_quiz_answer(intent, session_attributes):
